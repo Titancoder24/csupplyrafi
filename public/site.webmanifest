@@ -1,0 +1,14 @@
+{
+  "name": "C-Supply",
+  "short_name": "C-Supply",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0F4C81",
+  "description": "India's vertical marketplace for cement, steel, sand, aggregate, bricks, paints, TMT bars and more.",
+  "lang": "en-IN",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

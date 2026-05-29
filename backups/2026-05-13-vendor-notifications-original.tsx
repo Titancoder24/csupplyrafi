@@ -1,0 +1,163 @@
+import React from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import {
+  ArrowLeft, Bell, Package, Truck, CheckCircle2, AlertCircle,
+  ShoppingCart, AlertTriangle, Inbox as InboxIcon,
+} from 'lucide-react-native';
+import { FontFamily, Semantic, Ink } from '@/constants/theme';
+import { useNotifications, AppNotification } from '@/hooks/useNotifications';
+
+const BG      = '#F8FAFC';
+const SURFACE = '#FFFFFF';
+const BORDER  = '#E2E8F0';
+const TEXT    = '#0F172A';
+const MUTED   = '#64748B';
+const HINT    = '#94A3B8';
+const PRIMARY = '#1D4ED8';
+const PT      = Platform.OS === 'ios' ? 56 : Platform.OS === 'web' ? 0 : 36;
+
+type IconStyle = { Icon: any; color: string; bg: string };
+
+function iconFor(type: string): IconStyle {
+  if (type === 'new_order' || type === 'order_status')
+    return { Icon: ShoppingCart, color: PRIMARY,            bg: '#EFF6FF' };
+  if (type === 'out_of_stock')
+    return { Icon: AlertTriangle, color: Semantic.dangerFg, bg: Semantic.dangerBg };
+  if (type === 'low_stock')
+    return { Icon: AlertCircle,   color: Semantic.warningFg, bg: Semantic.warningBg };
+  if (type === 'order_accepted' || type === 'order_delivered')
+    return { Icon: CheckCircle2,  color: Semantic.successFg, bg: Semantic.successBg };
+  if (type === 'order_out_for_delivery' || type === 'transport_accepted')
+    return { Icon: Truck,         color: '#7C3AED',          bg: '#F5F3FF' };
+  return { Icon: Bell,            color: HINT,               bg: Ink[100] };
+}
+
+function relativeTime(iso: string) {
+  const t = new Date(iso).getTime();
+  const diff = Date.now() - t;
+  if (diff < 60_000)          return 'just now';
+  if (diff < 3_600_000)       return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000)      return `${Math.floor(diff / 3_600_000)}h ago`;
+  if (diff < 7 * 86_400_000)  return `${Math.floor(diff / 86_400_000)}d ago`;
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+export default function VendorNotifications() {
+  const router = useRouter();
+  const { notifications, unreadCount, loading, markRead, markAllRead } = useNotifications();
+
+  return (
+    <View style={s.root}>
+      {/* Header */}
+      <View style={[s.header, { paddingTop: PT > 0 ? PT : 14 }]}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={s.backBtn}>
+          <ArrowLeft size={20} color={TEXT} strokeWidth={2} />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <Text style={s.headerTitle}>Notifications</Text>
+          <Text style={s.headerSub}>
+            {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+          </Text>
+        </View>
+        {unreadCount > 0 && (
+          <Pressable onPress={markAllRead} style={s.markAllBtn}>
+            <Text style={s.markAllTxt}>Mark all read</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {loading ? (
+        <View style={s.loadingBox}>
+          <ActivityIndicator color={PRIMARY} size="large" />
+        </View>
+      ) : notifications.length === 0 ? (
+        <View style={s.emptyBox}>
+          <View style={s.emptyIconBox}>
+            <InboxIcon size={32} color={HINT} strokeWidth={1.5} />
+          </View>
+          <Text style={s.emptyTitle}>You're all caught up</Text>
+          <Text style={s.emptySub}>
+            New orders, stock alerts, and platform updates will appear here in real-time.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+          {notifications.map((n: AppNotification) => {
+            const it = iconFor(n.type);
+            const Icon = it.Icon;
+            return (
+              <Pressable
+                key={n.id}
+                style={[s.card, !n.read && s.cardUnread]}
+                onPress={() => !n.read && markRead(n.id)}
+              >
+                <View style={[s.iconBox, { backgroundColor: it.bg }]}>
+                  <Icon size={18} color={it.color} strokeWidth={2} />
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <View style={s.titleRow}>
+                    <Text style={s.title} numberOfLines={1}>{n.title}</Text>
+                    {!n.read && <View style={s.unreadDot} />}
+                  </View>
+                  {n.body ? (
+                    <Text style={s.body} numberOfLines={3}>{n.body}</Text>
+                  ) : null}
+                  <Text style={s.time}>{relativeTime(n.created_at)}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: BG },
+
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 14, paddingBottom: 14,
+    backgroundColor: SURFACE, borderBottomWidth: 1, borderBottomColor: BORDER,
+  },
+  backBtn: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: BG, alignItems: 'center', justifyContent: 'center',
+  },
+  headerTitle: { fontFamily: FontFamily.bold, fontSize: 17, color: TEXT },
+  headerSub:   { fontFamily: FontFamily.regular, fontSize: 11, color: MUTED, marginTop: 1 },
+  markAllBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: '#EFF6FF' },
+  markAllTxt: { fontFamily: FontFamily.semiBold, fontSize: 12, color: PRIMARY },
+
+  scroll: { padding: 14, gap: 10, paddingBottom: 32 },
+  card: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    backgroundColor: SURFACE, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: BORDER,
+  },
+  cardUnread: { backgroundColor: '#F8FAFC', borderColor: '#BFDBFE' },
+
+  iconBox: {
+    width: 38, height: 38, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title:    { fontFamily: FontFamily.bold, fontSize: 14, color: TEXT, flex: 1 },
+  body:     { fontFamily: FontFamily.regular, fontSize: 13, color: MUTED, lineHeight: 18 },
+  time:     { fontFamily: FontFamily.regular, fontSize: 11, color: HINT, marginTop: 4 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: PRIMARY },
+
+  loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  emptyBox:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
+  emptyIconBox: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: SURFACE, borderWidth: 1, borderColor: BORDER,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+  },
+  emptyTitle: { fontFamily: FontFamily.bold, fontSize: 17, color: TEXT },
+  emptySub:   { fontFamily: FontFamily.regular, fontSize: 13, color: MUTED, textAlign: 'center', maxWidth: 280, lineHeight: 19 },
+});
