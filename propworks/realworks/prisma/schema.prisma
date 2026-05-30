@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(cuid())
+  name         String?
+  email        String?     @unique
+  role         String      @default("admin")
+  workspaceId  String
+  workspace    Workspace   @relation(fields: [workspaceId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Workspace {
+  id           String      @id @default(cuid())
+  name         String
+  type         String      @default("developer")
+  plan         String      @default("pilot")
+  users        User[]
+  properties   Property[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Property {
+  id               String      @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace   @relation(fields: [workspaceId], references: [id])
+  name             String
+  location         String?
+  type             String?
+  priceRange       String?
+  status           String      @default("draft")
+  salesWhatsapp    String?
+  scenes           Scene[]
+  documents        KnowledgeDocument[]
+  leads            Lead[]
+  events           Event[]
+  coviewingSessions CoviewingSession[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model Scene {
+  id                 String       @id @default(cuid())
+  propertyId         String
+  property           Property     @relation(fields: [propertyId], references: [id])
+  name               String
+  roomType           String?
+  originalImageUrl   String?
+  splatUrl           String?
+  thumbnailUrl       String?
+  provider           String       @default("worldlabs")
+  model              String?
+  generationStatus   String       @default("draft")
+  startCameraX       Float?
+  startCameraY       Float?
+  startCameraZ       Float?
+  startCameraRotX    Float?
+  startCameraRotY    Float?
+  startCameraRotZ    Float?
+  annotations        Annotation[]
+  incomingHotspots   Annotation[] @relation("IncomingHotspots")
+  events             Event[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model Annotation {
+  id             String      @id @default(cuid())
+  sceneId        String
+  scene          Scene       @relation(fields: [sceneId], references: [id])
+  label          String
+  description    String?
+  category       String?
+  positionX      Float
+  positionY      Float
+  positionZ      Float
+  cta            String?
+  visible        Boolean     @default(true)
+  
+  // Scene Stitching
+  type           String      @default("info") // "info" or "hotspot"
+  targetSceneId  String?
+  targetScene    Scene?      @relation("IncomingHotspots", fields: [targetSceneId], references: [id])
+
+  events         Event[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model KnowledgeDocument {
+  id             String      @id @default(cuid())
+  propertyId     String
+  property       Property    @relation(fields: [propertyId], references: [id])
+  type           String
+  fileUrl        String
+  status         String      @default("processed")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model Lead {
+  id                 String             @id @default(cuid())
+  propertyId         String
+  property           Property           @relation(fields: [propertyId], references: [id])
+  name               String?
+  phone              String?
+  email              String?
+  intentScore        Int                @default(0)
+  status             String             @default("captured")
+  lastActivityAt     DateTime           @default(now())
+  events             Event[]
+  hostedSessions     CoviewingSession[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model Event {
+  id             String      @id @default(cuid())
+  propertyId     String
+  property       Property    @relation(fields: [propertyId], references: [id])
+  leadId         String?
+  lead           Lead?       @relation(fields: [leadId], references: [id])
+  sessionId      String?
+  eventType      String
+  sceneId        String?
+  scene          Scene?      @relation(fields: [sceneId], references: [id])
+  annotationId   String?
+  annotation     Annotation? @relation(fields: [annotationId], references: [id])
+  metadata       String?     // Stored as JSON string
+  timestamp      DateTime    @default(now())
+}
+
+model CoviewingSession {
+  id                 String      @id @default(cuid())
+  propertyId         String
+  property           Property    @relation(fields: [propertyId], references: [id])
+  hostLeadId         String?
+  hostLead           Lead?       @relation(fields: [hostLeadId], references: [id])
+  status             String      @default("active")
+  participantsCount  Int         @default(1)
+  startedAt          DateTime    @default(now())
+  endedAt            DateTime?
+}
