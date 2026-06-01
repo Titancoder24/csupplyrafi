@@ -98,8 +98,8 @@ export default function Verify() {
         return;
       }
 
-      // If user is vendor or transporter and they have a passcode set, prompt for passcode first.
-      if ((res.role === 'vendor' || res.role === 'transporter') && res.passcodeHash) {
+      // If user is vendor, transporter, or customer and they have a passcode set, prompt for passcode first.
+      if ((res.role === 'vendor' || res.role === 'transporter' || res.role === 'customer') && res.passcodeHash) {
         setRole(res.role);
         setSavedPasscodeHash(res.passcodeHash);
         setIsPasscodeMode(true);

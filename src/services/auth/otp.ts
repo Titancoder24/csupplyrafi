@@ -75,6 +75,7 @@ export async function verifyOtp(phone: string, code: string): Promise<
   // Fallback for standard demo accounts to prevent RLS/session race conditions on local devices
   let passcodeHash = profile?.passcode_hash ?? null;
   if (!passcodeHash && isDemoNumber(phone)) {
+    if (phone === '+919000000001') passcodeHash = '7c540741'; // '1234' hash
     if (phone === '+919000000002') passcodeHash = '7c540741'; // '1234' hash
     if (phone === '+919000000003') passcodeHash = '7c5155c1'; // '4321' hash
   }
