@@ -57,11 +57,11 @@ export default function Notifications() {
           )}
         </View>
         {unreadCount > 0 ? (
-          <Pressable onPress={markAllRead} style={s.markBtn}>
-            <Text style={s.markTxt}>Mark all read</Text>
+          <Pressable onPress={markAllRead} style={s.markBtn} hitSlop={8}>
+            <Text style={s.markTxt}>Mark read</Text>
           </Pressable>
         ) : (
-          <View style={{ width: 80 }} />
+          <View style={{ width: 72 }} />
         )}
       </View>
 
@@ -75,7 +75,7 @@ export default function Notifications() {
               onPress={() => setItems(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n))}
             >
               <View style={[s.iconBox, { backgroundColor: bg }]}>
-                <Icon size={18} color="#0F172A" strokeWidth={1.8} />
+                <Icon size={18} color={color} strokeWidth={2} />
               </View>
               <View style={s.body}>
                 <View style={s.bodyTop}>
@@ -86,7 +86,7 @@ export default function Notifications() {
                 </View>
                 <Text style={s.bodyTxt} numberOfLines={2}>{notif.body}</Text>
                 <View style={s.timeRow}>
-                  <Clock size={11} color="#0F172A" strokeWidth={2} />
+                  <Clock size={11} color={MUTED} strokeWidth={2} />
                   <Text style={s.time}>{notif.when}</Text>
                 </View>
               </View>
@@ -97,7 +97,7 @@ export default function Notifications() {
         {items.length === 0 && (
           <View style={s.empty}>
             <View style={s.emptyBox}>
-              <Bell size={36} color="#0F172A" strokeWidth={1.4} />
+              <Bell size={36} color={PRIMARY} strokeWidth={1.4} />
             </View>
             <Text style={s.emptyTitle}>No notifications</Text>
             <Text style={s.emptySub}>We'll notify you when something needs your attention.</Text>
@@ -113,43 +113,57 @@ const s = StyleSheet.create({
 
   header: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 4, paddingBottom: 12,
+    paddingHorizontal: 16, paddingBottom: 14,
     backgroundColor: SURFACE, borderBottomWidth: 1, borderBottomColor: BORDER,
+    /* Subtler modern header shadow */
+    shadowColor: TEXT, shadowOpacity: 0.02, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  backBtn:      { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  headerTitle:  { fontFamily: FontFamily.bold, fontSize: 16, color: TEXT },
+  backBtn: { 
+    width: 36, height: 36, borderRadius: 18, 
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
+  },
+  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  headerTitle:  { fontFamily: FontFamily.bold, fontSize: 16, color: TEXT, letterSpacing: -0.2 },
   badge: {
     backgroundColor: '#EF4444', borderRadius: 99,
-    paddingHorizontal: 6, paddingVertical: 1, minWidth: 20, alignItems: 'center',
+    paddingHorizontal: 7, paddingVertical: 2, minWidth: 18, 
+    alignItems: 'center', justifyContent: 'center',
   },
-  badgeTxt: { fontFamily: FontFamily.bold, fontSize: 10, color: SURFACE },
-  markBtn:  { width: 80, alignItems: 'flex-end', paddingRight: 8 },
-  markTxt:  { fontFamily: FontFamily.semiBold, fontSize: 12, color: PRIMARY },
+  badgeTxt: { fontFamily: FontFamily.bold, fontSize: 9.5, color: SURFACE, lineHeight: 11 },
+  markBtn: { 
+    width: 72, paddingVertical: 6, borderRadius: 8, 
+    backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center',
+  },
+  markTxt: { fontFamily: FontFamily.semiBold, fontSize: 11.5, color: PRIMARY },
 
-  scroll: { padding: 16, gap: 10, paddingBottom: 32 },
+  scroll: { padding: 16, gap: 12, paddingBottom: 32 },
 
   card: {
     flexDirection: 'row', gap: 12,
     backgroundColor: SURFACE, borderRadius: 14, borderWidth: 1, borderColor: BORDER, padding: 14,
-    shadowColor: TEXT, shadowOpacity: 0.04, shadowRadius: 6,
-    shadowOffset: { width: 0, height: 1 }, elevation: 1,
+    shadowColor: TEXT, shadowOpacity: 0.02, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 1,
   },
-  cardUnread: { borderLeftWidth: 3, borderLeftColor: PRIMARY, backgroundColor: '#FAFCFF' },
+  cardUnread: { 
+    backgroundColor: '#F5F9FF', 
+    borderColor: '#BFDBFE',
+  },
 
   iconBox: { width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 
   body:    { flex: 1, gap: 4 },
   bodyTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  title:   { flex: 1, fontFamily: FontFamily.semiBold, fontSize: 14, color: TEXT, lineHeight: 18 },
-  titleBold: { fontFamily: FontFamily.bold },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: PRIMARY },
+  title:   { flex: 1, fontFamily: FontFamily.semiBold, fontSize: 14, color: TEXT, lineHeight: 18, letterSpacing: -0.1 },
+  titleBold: { fontFamily: FontFamily.bold, color: '#0F172A' },
+  unreadDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: PRIMARY },
   bodyTxt: { fontFamily: FontFamily.regular, fontSize: 12.5, color: TEXTSUB, lineHeight: 18 },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   time:    { fontFamily: FontFamily.regular, fontSize: 11, color: MUTED },
 
-  empty:    { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
-  emptyTitle:{ fontFamily: FontFamily.bold, fontSize: 16, color: TEXT },
-  emptySub: { fontFamily: FontFamily.regular, fontSize: 13, color: MUTED, textAlign: 'center' },
+  empty: { alignItems: 'center', paddingTop: 80, gap: 16 },
+  emptyBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontFamily: FontFamily.bold, fontSize: 16, color: TEXT, letterSpacing: -0.2 },
+  emptySub: { fontFamily: FontFamily.regular, fontSize: 13, color: MUTED, textAlign: 'center', paddingHorizontal: 32, lineHeight: 18 },
 });

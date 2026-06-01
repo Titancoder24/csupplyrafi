@@ -121,7 +121,7 @@ function EmptyTruckState({ title, sub, online }: { title: string; sub?: string; 
         <View style={[s.emptyStatusPill, online && s.emptyStatusPillOn]}>
           <View style={[s.emptyStatusDot, online && s.emptyStatusDotOn]} />
           <Text style={[s.emptyStatusTxt, online && s.emptyStatusTxtOn]}>
-            {online ? 'Online — Receiving jobs' : 'Offline — Toggle online above'}
+            {online ? 'Online - Receiving jobs' : 'Offline - Toggle online above'}
           </Text>
         </View>
       )}
@@ -1013,7 +1013,7 @@ export default function TransporterTrips() {
         <View style={[s.statusPill, online && s.statusPillOn]}>
           <View style={[s.statusDot, online && s.statusDotOn]} />
           <Text style={[s.statusTxt, online && s.statusTxtOn]}>
-            {online ? 'Online — Receiving jobs' : 'Offline — Go online to accept jobs'}
+            {online ? 'Online - Receiving jobs' : 'Offline - Go online to accept jobs'}
           </Text>
         </View>
 
@@ -1608,7 +1608,7 @@ export default function TransporterTrips() {
         <Text style={s.infoFooterTxt}>
           {online
             ? 'You are online and will receive job requests'
-            : 'You are offline — toggle online above to receive jobs'}
+            : 'You are offline - toggle online above to receive jobs'}
         </Text>
       </View>
 

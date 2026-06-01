@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell, ChevronDown, ChevronRight,
   X, LogOut,
-  AlertTriangle, Check,
+  AlertTriangle,
 } from 'lucide-react-native';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/services/auth/AuthProvider';
@@ -254,7 +254,6 @@ export default function VendorDashboard() {
               <View style={s.idRow}>
                 <Text style={s.vendorId}>ID · {vendorId}</Text>
                 <View style={s.verifyPill}>
-                  <Check size={10} color="#0F172A" strokeWidth={3} />
                   <Text style={s.verifyTxt}>Verified</Text>
                 </View>
               </View>

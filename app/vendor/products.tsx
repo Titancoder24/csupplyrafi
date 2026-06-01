@@ -15,6 +15,7 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/services/auth/AuthProvider';
 import { formatINR } from '@/lib/format';
 import { FontFamily } from '@/constants/theme';
+import { getProductImage } from '@/lib/productImage';
 
 /* ─── Shared palette (matches Dashboard / Orders) ─────────────────────────── */
 const ORANGE_TOP = '#FF6B00';
@@ -386,13 +387,7 @@ export default function VendorProducts() {
                 <View key={p.id} style={s.card}>
                   {/* Image */}
                   <View style={s.thumb}>
-                    {p.images?.[0] ? (
-                      <Image source={{ uri: p.images[0] }} style={s.thumbImg} contentFit="cover" transition={150} />
-                    ) : (
-                      <View style={s.thumbPlaceholder}>
-                        <Package size={24} color="#0F172A" strokeWidth={1.5} />
-                      </View>
-                    )}
+                    <Image source={{ uri: getProductImage({ name: p.name, images: p.images }, { size: 200 }) }} style={s.thumbImg} contentFit="cover" transition={150} />
                   </View>
 
                   {/* Body */}

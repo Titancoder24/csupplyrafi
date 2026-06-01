@@ -70,8 +70,25 @@ export function getProductImage(
     explicit = nameOrProduct.images;
   }
 
-  if (explicit && explicit.length && typeof explicit[0] === 'string' && explicit[0].startsWith('http')) {
-    return explicit[0];
+  // If we have an explicit image array
+  if (explicit && explicit.length && typeof explicit[0] === 'string' && explicit[0].trim() !== '') {
+    const img = explicit[0].trim();
+    if (img.startsWith('http')) {
+      return img;
+    }
+    // If it's a relative path in Supabase storage bucket `product-images`
+    return `https://hvufqrkwyldyipvipmmi.supabase.co/storage/v1/object/public/product-images/${img}`;
+  }
+
+  // If a string itself was passed and it might be a relative image path
+  if (typeof nameOrProduct === 'string' && nameOrProduct.trim() !== '') {
+    const img = nameOrProduct.trim();
+    if (img.startsWith('http')) {
+      return img;
+    }
+    if (img.includes('/') && (img.endsWith('.png') || img.endsWith('.jpg') || img.endsWith('.jpeg') || img.endsWith('.webp'))) {
+      return `https://hvufqrkwyldyipvipmmi.supabase.co/storage/v1/object/public/product-images/${img}`;
+    }
   }
 
   const id = PHOTO_ID[bucketFor(name)];

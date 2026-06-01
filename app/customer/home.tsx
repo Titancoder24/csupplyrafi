@@ -596,7 +596,12 @@ function FeaturedProductCard({
   const router = useRouter();
   const fmt = (n: number) => '₹' + n.toLocaleString('en-IN');
   const liveImg = useGoogleImage(uploadedImg ? '' : `${name} ${brand} product`);
-  const finalImg = uploadedImg || liveImg || img;
+  const resolvedUploaded = (uploadedImg && typeof uploadedImg === 'string')
+    ? (uploadedImg.startsWith('http')
+        ? uploadedImg
+        : `https://hvufqrkwyldyipvipmmi.supabase.co/storage/v1/object/public/product-images/${uploadedImg}`)
+    : null;
+  const finalImg = resolvedUploaded || liveImg || img;
 
   return (
     <Pressable

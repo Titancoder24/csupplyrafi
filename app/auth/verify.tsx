@@ -11,8 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, MessageSquare, ShieldCheck } from 'lucide-react-native';
 import { FontFamily } from '@/constants/theme';
-import { verifyOtp, sendOtp } from '@/services/auth/otp';
-import { isDemoNumber } from '@/services/auth/AuthProvider';
+import { verifyOtp, sendOtp, hashLocal } from '@/services/auth/otp';
 
 /* ─── Palette — matches /auth/login ───────────────────────────────────────── */
 const TEAL_LINE     = '#22535A';
@@ -39,7 +38,14 @@ export default function Verify() {
   const [resending, setResending] = useState(false);
   const [seconds, setSeconds]     = useState(30);
   const inputs    = useRef<Array<TextInput | null>>([]);
+  const pcInputs  = useRef<Array<TextInput | null>>([]);
   const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  // New state variables for passcode verification
+  const [isPasscodeMode, setIsPasscodeMode] = useState(false);
+  const [passcode, setPasscode]             = useState<string[]>(['', '', '', '']);
+  const [role, setRole]                     = useState<string>('customer');
+  const [savedPasscodeHash, setSavedPasscodeHash] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setSeconds(s => Math.max(0, s - 1)), 1000);
@@ -47,9 +53,15 @@ export default function Verify() {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => inputs.current[0]?.focus(), 400);
+    const t = setTimeout(() => {
+      if (isPasscodeMode) {
+        pcInputs.current[0]?.focus();
+      } else {
+        inputs.current[0]?.focus();
+      }
+    }, 400);
     return () => clearTimeout(t);
-  }, []);
+  }, [isPasscodeMode]);
 
   function shake() {
     Animated.sequence([
@@ -73,12 +85,6 @@ export default function Verify() {
 
   async function submitCode(joined: string) {
     if (joined.length !== 6) { setError('Enter all 6 digits'); return; }
-    if (isDemoNumber(phone) && joined !== '123456') {
-      setError('Demo OTP is 123456'); shake();
-      setCode(['', '', '', '', '', '']);
-      setTimeout(() => inputs.current[0]?.focus(), 100);
-      return;
-    }
 
     setLoading(true);
     setError(null);
@@ -91,6 +97,19 @@ export default function Verify() {
         setTimeout(() => inputs.current[0]?.focus(), 100);
         return;
       }
+
+      // If user is vendor or transporter and they have a passcode set, prompt for passcode first.
+      if ((res.role === 'vendor' || res.role === 'transporter') && res.passcodeHash) {
+        setRole(res.role);
+        setSavedPasscodeHash(res.passcodeHash);
+        setIsPasscodeMode(true);
+        setError(null);
+        setLoading(false);
+        setPasscode(['', '', '', '']);
+        setTimeout(() => pcInputs.current[0]?.focus(), 100);
+        return;
+      }
+
       routeByRole(res.role);
     } catch {
       setError('Connection failed. Please try again.');
@@ -99,15 +118,47 @@ export default function Verify() {
     }
   }
 
+  async function submitPasscode(joinedPc: string) {
+    if (joinedPc.length !== 4) { setError('Enter all 4 digits'); return; }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const hashed = hashLocal(joinedPc);
+      if (hashed === savedPasscodeHash) {
+        routeByRole(role);
+      } else {
+        setError('Incorrect passcode. Please try again.');
+        shake();
+        setPasscode(['', '', '', '']);
+        setTimeout(() => pcInputs.current[0]?.focus(), 100);
+      }
+    } catch {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function setDigit(i: number, v: string) {
     setError(null);
     const digit = v.replace(/\D/g, '').slice(-1);
-    const next = [...code];
-    next[i] = digit;
-    setCode(next);
-    if (digit && i < 5) inputs.current[i + 1]?.focus();
-    if (!digit && i > 0) inputs.current[i - 1]?.focus();
-    if (next.every(d => d !== '')) submitCode(next.join(''));
+    
+    if (isPasscodeMode) {
+      const next = [...passcode];
+      next[i] = digit;
+      setPasscode(next);
+      if (digit && i < 3) pcInputs.current[i + 1]?.focus();
+      if (!digit && i > 0) pcInputs.current[i - 1]?.focus();
+      if (next.every(d => d !== '')) submitPasscode(next.join(''));
+    } else {
+      const next = [...code];
+      next[i] = digit;
+      setCode(next);
+      if (digit && i < 5) inputs.current[i + 1]?.focus();
+      if (!digit && i > 0) inputs.current[i - 1]?.focus();
+      if (next.every(d => d !== '')) submitCode(next.join(''));
+    }
   }
 
   async function resend() {
@@ -150,7 +201,18 @@ export default function Verify() {
 
               <View style={s.cardInner}>
                 {/* Back */}
-                <Pressable onPress={() => router.back()} hitSlop={12} style={s.backBtn}>
+                <Pressable 
+                  onPress={() => {
+                    if (isPasscodeMode) {
+                      setIsPasscodeMode(false);
+                      setError(null);
+                    } else {
+                      router.back();
+                    }
+                  }} 
+                  hitSlop={12} 
+                  style={s.backBtn}
+                >
                   <ArrowLeft size={18} color="#0F172A" strokeWidth={1.75} />
                 </Pressable>
 
@@ -171,33 +233,62 @@ export default function Verify() {
                 </View>
 
                 {/* Heading */}
-                <Text style={s.heading}>Verify your number</Text>
-                <Text style={s.subtext}>We sent a 6-digit OTP to</Text>
-                <Text style={s.phoneHighlight}>{maskedPhone}</Text>
+                <Text style={s.heading}>
+                  {isPasscodeMode ? 'Enter Security Passcode' : 'Verify your number'}
+                </Text>
+                <Text style={s.subtext}>
+                  {isPasscodeMode ? 'Enter your 4-digit security passcode to continue' : 'We sent a 6-digit OTP to'}
+                </Text>
+                {!isPasscodeMode && <Text style={s.phoneHighlight}>{maskedPhone}</Text>}
 
-                {/* OTP boxes */}
+                {/* OTP / Passcode boxes */}
                 <Animated.View style={[s.otpRow, { transform: [{ translateX: shakeAnim }] }]}>
-                  {code.map((d, i) => (
-                    <TextInput
-                      key={i}
-                      ref={r => { inputs.current[i] = r; }}
-                      value={d}
-                      onChangeText={v => setDigit(i, v)}
-                      keyboardType="number-pad"
-                      maxLength={1}
-                      placeholderTextColor={TEXT_SUBTLE}
-                      style={[
-                        s.otpBox,
-                        d        ? s.otpFilled : null,
-                        error    ? s.otpError  : null,
-                      ]}
-                      onKeyPress={({ nativeEvent }) => {
-                        if (nativeEvent.key === 'Backspace' && !d && i > 0) {
-                          inputs.current[i - 1]?.focus();
-                        }
-                      }}
-                    />
-                  ))}
+                  {isPasscodeMode ? (
+                    passcode.map((d, i) => (
+                      <TextInput
+                        key={i}
+                        ref={r => { pcInputs.current[i] = r; }}
+                        value={d ? '●' : ''}
+                        onChangeText={v => setDigit(i, v)}
+                        keyboardType="number-pad"
+                        maxLength={1}
+                        secureTextEntry
+                        placeholderTextColor={TEXT_SUBTLE}
+                        style={[
+                          s.otpBox,
+                          d        ? s.otpFilled : null,
+                          error    ? s.otpError  : null,
+                        ]}
+                        onKeyPress={({ nativeEvent }) => {
+                          if (nativeEvent.key === 'Backspace' && !d && i > 0) {
+                            pcInputs.current[i - 1]?.focus();
+                          }
+                        }}
+                      />
+                    ))
+                  ) : (
+                    code.map((d, i) => (
+                      <TextInput
+                        key={i}
+                        ref={r => { inputs.current[i] = r; }}
+                        value={d}
+                        onChangeText={v => setDigit(i, v)}
+                        keyboardType="number-pad"
+                        maxLength={1}
+                        placeholderTextColor={TEXT_SUBTLE}
+                        style={[
+                          s.otpBox,
+                          d        ? s.otpFilled : null,
+                          error    ? s.otpError  : null,
+                        ]}
+                        onKeyPress={({ nativeEvent }) => {
+                          if (nativeEvent.key === 'Backspace' && !d && i > 0) {
+                            inputs.current[i - 1]?.focus();
+                          }
+                        }}
+                      />
+                    ))
+                  )}
                 </Animated.View>
 
                 {/* Error */}
@@ -208,7 +299,7 @@ export default function Verify() {
                   <View style={s.loadingRow}>
                     <ActivityIndicator size="small" color={INK} />
                   </View>
-                ) : (
+                ) : !isPasscodeMode ? (
                   <View style={s.resendRow}>
                     {seconds > 0 ? (
                       <Text style={s.timerText}>
@@ -226,7 +317,7 @@ export default function Verify() {
                       </View>
                     )}
                   </View>
-                )}
+                ) : null}
 
                 {/* Security badge */}
                 <View style={s.secureBlock}>
@@ -239,9 +330,24 @@ export default function Verify() {
                 </View>
 
                 {/* Change number */}
-                <Pressable onPress={() => router.back()} hitSlop={8} style={s.changeRow}>
+                <Pressable 
+                  onPress={() => {
+                    if (isPasscodeMode) {
+                      setIsPasscodeMode(false);
+                      setError(null);
+                    } else {
+                      router.back();
+                    }
+                  }} 
+                  hitSlop={8} 
+                  style={s.changeRow}
+                >
                   <Text style={s.changeText}>
-                    Wrong number? <Text style={s.changeLink}>Change number</Text>
+                    {isPasscodeMode ? (
+                      <>Wrong account? <Text style={s.changeLink}>Back to OTP</Text></>
+                    ) : (
+                      <>Wrong number? <Text style={s.changeLink}>Change number</Text></>
+                    )}
                   </Text>
                 </Pressable>
               </View>

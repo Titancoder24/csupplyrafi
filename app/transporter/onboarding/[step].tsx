@@ -12,6 +12,7 @@ import { RadioCard } from '@/components/ui/RadioCard';
 import { StickyCta } from '@/components/ui/StickyCta';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useTransporterOnboarding } from '@/features/transporter/onboarding-store';
+import { hashLocal } from '@/services/auth/otp';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/services/auth/AuthProvider';
 
@@ -47,6 +48,19 @@ export default function TransporterStep() {
     }
     setSubmitting(true);
     try {
+      // Update user profile role and passcode_hash in profiles table
+      const { error: profErr } = await supabase
+        .from('profiles')
+        .update({
+          role: 'transporter',
+          passcode_hash: o.passcode ? hashLocal(o.passcode) : null,
+        })
+        .eq('id', profile.id);
+
+      if (profErr) {
+        console.error('Failed to update transporter profile role:', profErr.message);
+      }
+
       await supabase.from('transporter_profiles').upsert({
         id: profile.id,
         transporter_type:    o.type ?? null,
@@ -276,7 +290,14 @@ function Step6() {
 }
 
 function Step7() {
-  const [code, setCode] = useState('');
+  const o = useTransporterOnboarding();
+  const [code, setCode] = useState(o.passcode ?? '');
+
+  const updateCode = (newCode: string) => {
+    setCode(newCode);
+    o.set({ passcode: newCode });
+  };
+
   return (
     <View style={{ gap: 16, alignItems: 'center', paddingTop: 24 }}>
       <Text style={{ fontSize: 14, color: '#475569' }}>Set 4-digit passcode</Text>
@@ -299,7 +320,7 @@ function Step7() {
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (
           <Pressable
             key={d}
-            onPress={() => setCode((c) => (c.length < 4 ? c + d : c))}
+            onPress={() => { if (code.length < 4) updateCode(code + d); }}
             style={{
               width: 88,
               height: 56,
@@ -316,7 +337,7 @@ function Step7() {
         ))}
         <View style={{ width: 88, height: 56 }} />
         <Pressable
-          onPress={() => setCode((c) => (c.length < 4 ? c + '0' : c))}
+          onPress={() => { if (code.length < 4) updateCode(code + '0'); }}
           style={{
             width: 88,
             height: 56,
@@ -331,7 +352,7 @@ function Step7() {
           <Text style={{ fontSize: 22, fontWeight: '500' }}>0</Text>
         </Pressable>
         <Pressable
-          onPress={() => setCode((c) => c.slice(0, -1))}
+          onPress={() => updateCode(code.slice(0, -1))}
           style={{
             width: 88,
             height: 56,

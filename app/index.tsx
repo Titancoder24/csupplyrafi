@@ -9,7 +9,7 @@ import {
   SafeAreaView, StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { ArrowRight, User } from 'lucide-react-native';
 import { useAuth } from '@/services/auth/AuthProvider';
 import { FontFamily } from '@/constants/theme';
@@ -22,10 +22,13 @@ const BORDER = '#D9DDE2';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const pathname = usePathname();
   const { session, profile, loading } = useAuth();
 
   useEffect(() => {
     if (loading) return;
+    // Only allow redirection if the splash screen is the active screen
+    if (pathname !== '/') return;
     if (session && !profile) return;
     if (session && profile) {
       const role = profile.role ?? 'customer';
@@ -37,7 +40,7 @@ export default function SplashScreen() {
         default:              router.replace('/customer/home' as never);
       }
     }
-  }, [loading, session, profile, router]);
+  }, [loading, session, profile, router, pathname]);
 
   return (
     <View style={s.root}>

@@ -17,6 +17,7 @@ import { Header } from '@/components/ui/Header';
 import { StepProgress } from '@/components/ui/StepProgress';
 import { StickyCta } from '@/components/ui/StickyCta';
 import { useVendorOnboarding } from '@/features/vendor/onboarding-store';
+import { hashLocal } from '@/services/auth/otp';
 import { MapPicker } from '@/components/ui/MapPicker';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/services/auth/AuthProvider';
@@ -247,6 +248,22 @@ export default function VendorOnboardingStep() {
       setSubmitting(true);
       setSubmitErr(null);
       try {
+        // Update user profile role and passcode_hash in profiles table
+        const { error: profErr } = await supabase
+          .from('profiles')
+          .update({
+            role: 'vendor',
+            passcode_hash: v.passcode ? hashLocal(v.passcode) : null,
+            full_name: v.ownerName,
+          })
+          .eq('id', profile.id);
+
+        if (profErr) {
+          setSubmitErr(`Profile update failed: ${profErr.message}`);
+          setSubmitting(false);
+          return;
+        }
+
         const { error: upErr } = await supabase.from('vendor_profiles').upsert({
           id:                profile.id,
           business_name:     v.shopName,

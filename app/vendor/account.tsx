@@ -6,7 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  Bell, ChevronRight, History, LogOut, Check,
+  Bell, ChevronRight, History, LogOut,
   Phone, Mail, Store, ShieldCheck, HelpCircle, FileText,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -126,7 +126,6 @@ export default function VendorAccount() {
               <Text style={s.vendorId}>ID · {vendorId}</Text>
               {profile?.verified !== false && (
                 <View style={s.verifyPill}>
-                  <Check size={10} color="#0F172A" strokeWidth={3} />
                   <Text style={s.verifyTxt}>Verified</Text>
                 </View>
               )}

@@ -220,7 +220,7 @@ export default function TransporterHome() {
             <View style={[s.statusPill, online && s.statusPillOn]}>
               <View style={[s.statusDot, online && s.statusDotOn]} />
               <Text style={[s.statusTxt, online && s.statusTxtOn]}>
-                {online ? 'Online — Receiving jobs' : 'Offline — Go online to accept jobs'}
+                {online ? 'Online - Receiving jobs' : 'Offline - Go online to accept jobs'}
               </Text>
             </View>
           </View>

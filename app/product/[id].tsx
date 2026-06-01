@@ -113,7 +113,9 @@ export default function ProductDetail() {
 
   const moq   = product?.min_order_qty ?? 1;
   const step  = moq > 1 ? moq : 1;
-  const imgs  = product?.images?.length ? product.images : [getProductImage(product?.name ?? '', { size: 600 })];
+  const imgs = product?.images?.length
+    ? product.images.map(img => getProductImage(img, { size: 600 }))
+    : [getProductImage(product?.name ?? '', { size: 600 })];
   const total = product ? product.base_price * qty : 0;
 
   if (loading) return (

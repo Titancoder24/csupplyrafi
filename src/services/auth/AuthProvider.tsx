@@ -27,32 +27,34 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const DEMO_NUMBERS: Record<string, { role: Role; name: string }> = {
-  '+919000000001': { role: 'customer', name: 'Ramesh Kumar (Demo)' },
-  '+919000000002': { role: 'vendor', name: 'Sri Balaji Building Materials (Demo)' },
-  '+919000000003': { role: 'transporter', name: 'Suresh Reddy (Demo)' },
-  '+919000000004': { role: 'admin', name: 'Demo Admin' },
-  '+919000000005': { role: 'super_admin', name: 'Demo Super Admin' },
-};
+/**
+ * Fetch a profile with retry logic. The server-side `handle_new_user` trigger
+ * creates the profile row asynchronously, so it may not be available immediately
+ * after signup. We retry up to 3 times with a 500ms delay.
+ */
+async function fetchProfileWithRetry(userId: string, retries = 3): Promise<ProfileRow | null> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, phone, email, full_name, role, language, avatar_url, verified, is_demo')
+      .eq('id', userId)
+      .maybeSingle();
+    if (!error && data) return data as ProfileRow;
+    if (attempt < retries - 1) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+  return null;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string): Promise<ProfileRow | null> => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, phone, email, full_name, role, language, avatar_url, verified, is_demo')
-      .eq('id', userId)
-      .maybeSingle();
-    if (error) return null;
-    return (data as ProfileRow) ?? null;
-  };
-
   const refreshProfile = useCallback(async () => {
     if (!session?.user?.id) return;
-    const next = await fetchProfile(session.user.id);
+    const next = await fetchProfileWithRetry(session.user.id, 1);
     setProfile(next);
   }, [session?.user?.id]);
 
@@ -69,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!active) return;
       setSession(data.session ?? null);
       if (data.session?.user) {
-        const p = await fetchProfile(data.session.user.id);
+        const p = await fetchProfileWithRetry(data.session.user.id, 1);
         if (active) setProfile(p);
       }
       setLoading(false);
@@ -78,22 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: subscription } = supabase.auth.onAuthStateChange(async (_event, sess) => {
       setSession(sess);
       if (sess?.user) {
-        let p = await fetchProfile(sess.user.id);
-        if (!p) {
-          // New user — auto-create a customer profile so routing never gets stuck
-          await supabase.from('profiles').upsert({
-            id: sess.user.id,
-            phone: sess.user.phone ?? null,
-            email: sess.user.email ?? null,
-            full_name: null,
-            role: 'customer',
-            language: 'en',
-            avatar_url: null,
-            verified: false,
-            is_demo: false,
-          }, { onConflict: 'id' });
-          p = await fetchProfile(sess.user.id);
-        }
+        // Profile is created by the server-side handle_new_user trigger.
+        // Use retry logic for new signups where the trigger may take a moment.
+        const p = await fetchProfileWithRetry(sess.user.id, 3);
         setProfile(p);
       } else {
         setProfile(null);
@@ -122,16 +111,4 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
-}
-
-export function isDemoNumber(phone: string) {
-  return phone in DEMO_NUMBERS;
-}
-
-export function demoRoleFor(phone: string): Role | null {
-  return DEMO_NUMBERS[phone]?.role ?? null;
-}
-
-export function demoNameFor(phone: string): string | null {
-  return DEMO_NUMBERS[phone]?.name ?? null;
 }

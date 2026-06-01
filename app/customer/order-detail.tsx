@@ -172,6 +172,14 @@ export default function OrderDetailScreen() {
   const [popupShownFor, setPopupShownFor]   = useState<string | null>(null);
   const [feedbackTags, setFeedbackTags]     = useState<string[]>([]);
 
+  const firstItem = order?.items?.[0];
+  const productImgUrl = firstItem
+    ? getProductImage(
+        { name: firstItem.product_name, images: (firstItem as any).products?.images },
+        { size: 200 },
+      )
+    : null;
+
   const load = useCallback(async (silent = false) => {
     if (!id) {
       setLoading(false);
@@ -562,7 +570,7 @@ export default function OrderDetailScreen() {
             {ratingDone ? (
               <View style={{ alignItems: 'center', gap: 10, paddingVertical: 28 }}>
                 <View style={rm.successCircle}>
-                  <CheckCircle2 size={36} color="#0F172A" strokeWidth={2.2} />
+                  <CheckCircle2 size={36} color="#BE185D" strokeWidth={2.2} />
                 </View>
                 <Text style={rm.title}>Thanks for your feedback!</Text>
                 <Text style={rm.sub}>Your rating helps us improve.</Text>
@@ -582,44 +590,52 @@ export default function OrderDetailScreen() {
 
                 <View style={rm.headerBody}>
                   <View style={rm.bikerIcon}>
-                    <Truck size={22} color="#FFFFFF" strokeWidth={2} />
+                    {/* Cute custom delivery mascot look with orange and pink accents */}
+                    <View style={rm.bikerCapContainer}>
+                      <Truck size={20} color="#EA580C" strokeWidth={2} />
+                    </View>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={rm.title}>How was the delivery experience?</Text>
-                    <Text style={rm.sub} numberOfLines={1}>
-                      with {order?.transporter?.name ?? 'the delivery partner'}
-                    </Text>
                   </View>
-                  {order && order.items.length > 0 && (
-                    <View style={rm.productThumb}>
-                      <Package size={20} color="#0F172A" strokeWidth={2} />
+                  {productImgUrl ? (
+                    <Image
+                      source={{ uri: productImgUrl }}
+                      style={rm.productThumb}
+                      contentFit="cover"
+                      transition={150}
+                    />
+                  ) : (
+                    <View style={rm.productThumbFallback}>
+                      <Package size={20} color="#94A3B8" strokeWidth={1.5} />
                     </View>
                   )}
                 </View>
 
                 <View style={rm.hr} />
 
-                {/* Pill rating */}
+                {/* Pill rating selector matching the mockup perfectly */}
                 <View style={rm.pillRow}>
                   {RATING_PILLS.map(p => {
                     const selected = rating === p.value;
                     return (
-                      <Pressable
-                        key={p.value}
-                        style={[
-                          rm.pill,
-                          { borderColor: p.color },
-                          selected && { backgroundColor: p.color },
-                        ]}
-                        onPress={() => setRating(p.value)}
-                      >
-                        <Text style={[rm.pillNum, { color: selected ? '#fff' : p.color }]}>
-                          {p.value}
-                        </Text>
-                        <Text style={[rm.pillLabel, selected && { color: '#fff' }]}>
+                      <View key={p.value} style={rm.ratingOption}>
+                        <Pressable
+                          style={[
+                            rm.pill,
+                            { borderColor: p.color },
+                            selected && { backgroundColor: p.color },
+                          ]}
+                          onPress={() => setRating(p.value)}
+                        >
+                          <Text style={[rm.pillNum, { color: selected ? '#fff' : p.color }]}>
+                            {p.value}
+                          </Text>
+                        </Pressable>
+                        <Text style={[rm.pillLabel, selected && { color: p.color, fontFamily: FontFamily.bold }]}>
                           {p.label}
                         </Text>
-                      </Pressable>
+                      </View>
                     );
                   })}
                 </View>
@@ -628,9 +644,7 @@ export default function OrderDetailScreen() {
                 {rating > 0 && (
                   <>
                     <View style={rm.hr} />
-                    <Text style={rm.chipsHeader}>
-                      {rating <= 2 ? 'What went wrong?' : rating === 3 ? 'What was OK?' : 'Tell us what you liked?'}
-                    </Text>
+                    <Text style={rm.chipsHeader}>Tell us what did you like?</Text>
                     <View style={rm.chipsWrap}>
                       {FEEDBACK_TAGS.map(t => {
                         const on = feedbackTags.includes(t);
@@ -655,7 +669,7 @@ export default function OrderDetailScreen() {
                       placeholderTextColor={HINT}
                       value={ratingComment}
                       onChangeText={setRatingComment}
-                      multiline
+                      multiline={false}
                       maxLength={300}
                     />
                     <Text style={rm.helper}>Your word helps us improve our delivery experience</Text>
@@ -673,7 +687,7 @@ export default function OrderDetailScreen() {
                   >
                     {submitting
                       ? <ActivityIndicator color="#fff" size="small" />
-                      : <Text style={rm.submitTxt}>Submit Rating</Text>}
+                      : <Text style={rm.submitTxt}>Submit Feedback</Text>}
                   </Pressable>
                 </View>
               </ScrollView>
@@ -703,14 +717,20 @@ const rm = StyleSheet.create({
 
   headerBody: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bikerIcon: {
-    width: 46, height: 46, borderRadius: 10,
-    backgroundColor: PRIMARY,
+    width: 48, height: 48, borderRadius: 12,
+    backgroundColor: '#FFF7ED', borderColor: '#FED7AA', borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  bikerCapContainer: {
     alignItems: 'center', justifyContent: 'center',
   },
   productThumb: {
     width: 52, height: 52, borderRadius: 8,
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1, borderColor: '#BFDBFE',
+    borderWidth: 1, borderColor: '#E2E8F0',
+  },
+  productThumbFallback: {
+    width: 52, height: 52, borderRadius: 8,
+    backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0',
     alignItems: 'center', justifyContent: 'center',
   },
   title:     { fontFamily: FontFamily.bold, fontSize: 16, color: '#0F172A', letterSpacing: -0.2, lineHeight: 21 },
@@ -719,39 +739,38 @@ const rm = StyleSheet.create({
   hr:        { height: 1, backgroundColor: '#E2E8F0', marginVertical: 16 },
 
   pillRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
+  ratingOption: { alignItems: 'center', flex: 1 },
   pill: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 8, paddingHorizontal: 4,
-    borderRadius: 99, borderWidth: 1.5, backgroundColor: '#fff',
-    gap: 2,
+    width: 52, height: 36, borderRadius: 18, borderWidth: 1.5,
+    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
   },
-  pillNum:   { fontFamily: FontFamily.bold, fontSize: 16 },
-  pillLabel: { fontFamily: FontFamily.medium, fontSize: 10, color: '#475569', textAlign: 'center' },
+  pillNum:   { fontFamily: FontFamily.bold, fontSize: 15 },
+  pillLabel: { fontFamily: FontFamily.medium, fontSize: 10.5, color: '#64748B', marginTop: 6, textAlign: 'center' },
 
   chipsHeader: { fontFamily: FontFamily.bold, fontSize: 14, color: '#0F172A', marginBottom: 10 },
   chipsWrap:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 14, paddingVertical: 9,
-    borderRadius: 99, backgroundColor: '#fff',
+    borderRadius: 99, backgroundColor: '#F8FAFC',
     borderWidth: 1, borderColor: '#E2E8F0',
   },
-  chipOn:     { backgroundColor: '#FBE7F1', borderColor: '#BE185D' },
-  chipTxt:    { fontFamily: FontFamily.medium, fontSize: 13, color: '#334155' },
+  chipOn:     { backgroundColor: '#FDF2F8', borderColor: '#BE185D' },
+  chipTxt:    { fontFamily: FontFamily.medium, fontSize: 13, color: '#475569' },
   chipTxtOn:  { color: '#BE185D', fontFamily: FontFamily.bold },
 
   tellMoreLabel: { fontFamily: FontFamily.bold, fontSize: 14, color: '#BE185D', marginTop: 18, marginBottom: 8 },
-  helper:        { fontFamily: FontFamily.regular, fontSize: 11.5, color: '#94A3B8', marginTop: 10, paddingTop: 12, borderTopWidth: 2, borderTopColor: '#BE185D' },
+  helper:        { fontFamily: FontFamily.regular, fontSize: 11, color: '#94A3B8', marginTop: 6 },
 
   successCircle: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#FDF2F8',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 4,
   },
   input: {
-    borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10,
-    padding: 12, fontFamily: FontFamily.regular, fontSize: 13,
-    color: '#0F172A', minHeight: 72, textAlignVertical: 'top' as const,
+    borderBottomWidth: 1.5, borderBottomColor: '#BE185D',
+    paddingVertical: 8, fontFamily: FontFamily.regular, fontSize: 13,
+    color: '#0F172A', minHeight: 40,
   },
   actions:   { flexDirection: 'row', gap: 10, marginTop: 20 },
   laterBtn:  {
@@ -761,7 +780,7 @@ const rm = StyleSheet.create({
   laterTxt:  { fontFamily: FontFamily.semiBold, fontSize: 14, color: '#475569' },
   submitBtn: {
     flex: 1.4, paddingVertical: 12, borderRadius: 10,
-    backgroundColor: '#15803D', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#BE185D', alignItems: 'center', justifyContent: 'center',
   },
   submitTxt: { fontFamily: FontFamily.bold, fontSize: 14, color: '#fff' },
 });

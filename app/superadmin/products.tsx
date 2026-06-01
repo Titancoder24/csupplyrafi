@@ -12,6 +12,7 @@ import { Colors, FontFamily, Radius, Shadow, Semantic } from '@/constants/theme'
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/services/auth/AuthProvider';
 import { toast } from '@/services/toast';
+import { getProductImage } from '@/lib/productImage';
 
 const G = Semantic.successFg;
 const UNITS = ['bag', 'ton', 'kg', 'piece', 'sqft', 'rft', 'cum', 'litre'];
@@ -35,16 +36,9 @@ const TABS = [
   { key: 'inactive', label: 'Rejected', color: Semantic.dangerFg,  bg: Semantic.dangerBg  },
 ];
 
-function ProductImage({ images }: { images?: string[] | null }) {
-  const url = images?.[0];
-  if (url) {
-    return <Image source={{ uri: url }} style={s.productImg} resizeMode="cover" />;
-  }
-  return (
-    <View style={[s.productImg, s.productImgFallback]}>
-      <Package size={28} color="#0F172A" strokeWidth={1.5} />
-    </View>
-  );
+function ProductImage({ images, name }: { images?: string[] | null; name: string }) {
+  const url = getProductImage({ name, images }, { size: 200 });
+  return <Image source={{ uri: url }} style={s.productImg} resizeMode="cover" />;
 }
 
 export default function ProductsScreen() {
@@ -331,7 +325,7 @@ export default function ProductsScreen() {
         ) : (
           filtered.map(p => (
             <View key={p.id} style={s.card}>
-              <ProductImage images={p.images} />
+              <ProductImage images={p.images} name={p.name} />
 
               <View style={s.cardContent}>
                 <Text style={s.productName} numberOfLines={2}>{p.name}</Text>
